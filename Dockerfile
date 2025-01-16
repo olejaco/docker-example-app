@@ -1,23 +1,30 @@
-FROM ubuntu:22.04
+# Build stage
+FROM ubuntu:22.04 AS builder
 
-# Install necessary packages
+# Install build dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
     cmake \
     && rm -rf /var/lib/apt/lists/*
 
-# Create app directory
-WORKDIR /app
+# Create and set build directory
+WORKDIR /build
 
 # Copy source files
 COPY . .
 
-# Create build directory
-RUN mkdir build
+# Configure and build the project
+RUN cmake -B build && \
+    cmake --build build
 
-# Build the project
-WORKDIR /app/build
-RUN cmake .. && make
+# Runtime stage
+FROM ubuntu:22.04
+
+# Copy only the built executable from builder stage
+COPY --from=builder /build/build/cpp_example /app/cpp_example
+
+# Set working directory
+WORKDIR /app
 
 # Set the entrypoint
 ENTRYPOINT ["./cpp_example"]
